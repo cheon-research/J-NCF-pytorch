@@ -17,7 +17,7 @@ import torch.nn.functional as F
 class JNCF(nn.Module):
     def __init__(self, n_user, n_item, combination):
         super(JNCF, self).__init__()
-
+        self.combination = combination
         self.DF_user = nn.Sequential(
                         nn.Linear(n_item, 256),
                         nn.ReLU(),
@@ -71,9 +71,9 @@ class JNCF(nn.Module):
         user_feature = self.DF_user(user)
         item_feature = self.DF_item(item)
 
-        if combination == 'concat':
+        if self.combination == 'concat':
             feature_vector = torch.cat((user_feature, item_feature), dim=-1)
-        elif combination == 'multi':
+        elif self.combination == 'multi':
             feature_vector = user_feature * item_feature
 
         pred = self.predict_layer(self.DI(feature_vector))
