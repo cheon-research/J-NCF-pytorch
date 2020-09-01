@@ -68,6 +68,8 @@ class JNCF(nn.Module):
         nn.init.normal_(self.predict_layer.weight, 0, 0.01)
 
     def forward(self, user, item):
+        user = F.normalize(user)
+        item = F.normalize(item)
         user_feature = self.DF_user(user)
         item_feature = self.DF_item(item)
 

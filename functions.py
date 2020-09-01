@@ -5,7 +5,7 @@ import torch.nn.functional as F
 import time, os, random
 import numpy as np
 
-def negative_sampling(train_u, train_i, u_cnt, neg_dict, n_negs):
+def negative_sampling(train_u, train_i, u_cnt, neg_candidates, n_negs):
     idxlist = np.array(range(len(train_u)))
     
     new_users, new_items = [], []
@@ -14,7 +14,7 @@ def negative_sampling(train_u, train_i, u_cnt, neg_dict, n_negs):
     neg_users, neg_items = [], []
     for u, cnt in enumerate(u_cnt):
         sampled_users = [u] * (cnt * n_negs)
-        sampled_items = random.choices(neg_dict[u], k=cnt*n_negs)
+        sampled_items = random.choices(neg_candidates[u], k=cnt*n_negs)
         neg_users += sampled_users
         neg_items += sampled_items
     '''

@@ -41,30 +41,36 @@ def load_test_ml_100k():
 
 
 def load_train_ml_1m():
-    data = pd.read_csv('data/ml-1m.train.rating', sep='\t', header=None, names=['user', 'item'], usecols=[0, 1],
-                       dtype={0: np.int16, 1: np.int16})
+    # modified for J-NCF, explicit feedback
+    data = pd.read_csv('data/ml-1m.train.rating', sep='\t', header=None, names=['user', 'item', 'rating'], usecols=[0, 1, 2],
+                       dtype={0: np.int16, 1: np.int16, 2:np.int8})
     n_user, n_item = data['user'].max() + 1, data['item'].max() + 1
-    user_count = data.groupby('user').count().values.reshape(-1) # count interacted items for each user
+    user_count = data.groupby('user').count()['item'].values.reshape(-1) # count interacted items for each user
+    user_rating_max = data.groupby('user').max()['item'].values.reshape(-1)
+    print(user_rating_max.take([0, 1, 2]))
+    exit()
+    item_sort_data = data.sort_values(by=['item', 'user'])
 
-    rows, cols = data['user'], data['item']
+    user_rows, user_cols, user_ratings = data['user'], data['item'], data['rating']
+    item_rows, item_cols, item_ratings = item_sort_data['item'], item_sort_data['user'], item_sort_data['rating']
     users, items = data['user'].values, data['item'].values
 
     # user-item mat for user_embedding / item-user mat for item_embedding
-    user_item_matrix = sp.csr_matrix((np.ones_like(rows), (rows, cols)), dtype=np.int8, shape=(n_user, n_item))
+    user_item_matrix = sp.csr_matrix((user_ratings, (user_rows, user_cols)), dtype=np.int8, shape=(n_user, n_item))
     print('user_item_matrix', user_item_matrix.shape)
-    item_user_matrix = sp.csr_matrix((np.ones_like(cols), (cols, rows)), dtype=np.int8, shape=(n_item, n_user))
+    item_user_matrix = sp.csr_matrix((item_ratings, (item_rows, item_cols)), dtype=np.int8, shape=(n_item, n_user))
     print('item_user_matrix', item_user_matrix.shape)
 
     # Negative sample candidates
-    neg_dict = dict()
+    neg_candidates = dict()
     item_list = np.array(range(0, n_item))
     for u in range(0, n_user):
         pos_items = data.loc[data['user'] == u]['item'].values # select 'item's that 'user' == u
         candidates = np.setdiff1d(item_list, pos_items) # items - pos_items
-        neg_items = np.random.choice(candidates, len(pos_items), replace=True) # replace = overlap(True/False)
-        neg_dict[u] = neg_items
+        #neg_items = np.random.choice(candidates, len(pos_items), replace=True) # replace = overlap(True/False)
+        neg_candidates[u] = candidates
 
-    return user_item_matrix, item_user_matrix, users, items, neg_dict, user_count
+    return user_item_matrix, item_user_matrix, users, items, neg_candidates, user_count, user_rating_max
 
 
 def load_test_ml_1m():
@@ -167,51 +173,4 @@ def load_test_ml_10m():
     return np.array(users), np.array(items)
 
 if __name__ == "__main__":
-    load_test_ml_100k()
-
-
-'''
-class PredDataset(data.Dataset):
-    def __init__(self, u_i_mat, i_u_mat, u_arr, i_arr, users, items, u_cnt, neg_dict, n_neg):
-        
-        self.len = len(users) * (n_neg + 1)
-
-        self.u_i_mat = u_i_mat
-        self.i_u_mat = i_u_mat
-        self.users = users
-        self.items = items
-        self.labels = np.ones(len(self.users), dtype=np.float32)
-
-        self.u_cnt = u_cnt
-        self.neg_dict = neg_dict
-        self.n_neg = n_neg
-
-        self.neg_users, self.neg_items = [], []
-
-    def __len__(self):
-        return self.len
-
-    def neg_sampling(self):
-        if self.n_neg > 0:
-            for u in range(0, len(self.u_cnt)):
-                cnt = self.u_cnt[u]
-                sampled_users = [u] * (cnt * self.n_neg)
-                sampled_items = random.choices(self.neg_dict[u], k=cnt*self.n_neg)
-                self.neg_users += sampled_users
-                self.neg_items += sampled_items
-
-            self.users = np.hstack([self.users, np.array(self.neg_users)])
-            self.items = np.hstack([self.items, np.array(self.neg_items)])
-
-            self.neg_labels = np.zeros(len(self.neg_users), dtype=np.float32)
-            self.labels = np.hstack([self.labels, self.neg_labels])
-            print('Negative Samples', len(self.users), len(self.items), len(self.labels))
-        else:
-            print('0 negative samples')
-
-    def __getitem__(self, idx):
-        user = self.u_i_mat[self.users[idx]].toarray()[0]
-        item = self.i_u_mat[self.items[idx]].toarray()[0]
-        label = self.labels[idx]
-        return (user, item, label)
-'''
+    load_train_ml_1m()
