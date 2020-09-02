@@ -46,14 +46,13 @@ def load_train_ml_1m():
                        dtype={0: np.int16, 1: np.int16, 2:np.int8})
     n_user, n_item = data['user'].max() + 1, data['item'].max() + 1
     user_count = data.groupby('user').count()['item'].values.reshape(-1) # count interacted items for each user
-    user_rating_max = data.groupby('user').max()['item'].values.reshape(-1)
-    print(user_rating_max.take([0, 1, 2]))
-    exit()
+    user_rating_max = data.groupby('user').max()['rating'].values.reshape(-1)
+
     item_sort_data = data.sort_values(by=['item', 'user'])
 
     user_rows, user_cols, user_ratings = data['user'], data['item'], data['rating']
     item_rows, item_cols, item_ratings = item_sort_data['item'], item_sort_data['user'], item_sort_data['rating']
-    users, items = data['user'].values, data['item'].values
+    users, items, ratings = data['user'].values, data['item'].values, data['rating'].values
 
     # user-item mat for user_embedding / item-user mat for item_embedding
     user_item_matrix = sp.csr_matrix((user_ratings, (user_rows, user_cols)), dtype=np.int8, shape=(n_user, n_item))
@@ -70,7 +69,7 @@ def load_train_ml_1m():
         #neg_items = np.random.choice(candidates, len(pos_items), replace=True) # replace = overlap(True/False)
         neg_candidates[u] = candidates
 
-    return user_item_matrix, item_user_matrix, users, items, neg_candidates, user_count, user_rating_max
+    return user_item_matrix, item_user_matrix, users, items, ratings, neg_candidates, user_count, user_rating_max
 
 
 def load_test_ml_1m():

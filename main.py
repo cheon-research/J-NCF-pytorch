@@ -6,7 +6,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.optim as optim
-import torch.functional as F
+import torch.nn.functional as F
 import torch.utils.data as data
 import torch.backends.cudnn as cudnn
 
@@ -46,13 +46,10 @@ def BPR(pos, neg):
 
 
 def explicit_log(y_hat, y, y_max):
-	print(y_hat)
-	print(y)
-	print(y_max)
-	exit()
 	Y_ui = y / y_max
-	loss = - Y_ui * torch.log(y_hat) - (1 - Y_ui) * torch.log(1 - y_hat)
+	loss = - Y_ui * F.logsigmoid(y_hat) - (1 - Y_ui) * F.logsigmoid(1 - y_hat)
 	return torch.mean(loss)
+
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--lr", 
@@ -65,7 +62,7 @@ parser.add_argument("--dropout",
 	help="dropout rate")
 parser.add_argument("--batch_size", 
 	type=int, 
-	default=512, 
+	default=256, 
 	help="batch size for training")
 parser.add_argument("--epochs", 
 	type=int,
@@ -110,7 +107,7 @@ else:
 	FloatTensor = torch.FloatTensor
 
 ############################## PREPARE DATASET ##########################
-user_matrix, item_matrix, train_u, train_i, neg_candidates, u_cnt, user_rating_max = dataset.load_train_ml_1m()
+user_matrix, item_matrix, train_u, train_i, train_r, neg_candidates, u_cnt, user_rating_max = dataset.load_train_ml_1m()
 test_users, test_items = dataset.load_test_ml_1m()
 
 #user_matrix, item_matrix, train_u, train_i, neg_candidates, u_cnt = torch_dataset.load_train_ml_100k()
@@ -154,23 +151,33 @@ for epoch in range(args.epochs):
 
 		u_ids = train_u.take(idx)
 		pos_i_ids = train_i.take(idx)
-		for ng_idx in range(0, args.num_ng):
-			neg_i_ids = train_j_list[ng_idx].take(idx)
-			labels = torch.ones(len(u_ids)).to(device)
+		pos_i_ratings = train_r.take(idx)
+		rating_max = FloatTensor(user_rating_max.take(u_ids, axis=0))
+		
+		users = FloatTensor(user_array.take(u_ids, axis=0))
+		pos_items = FloatTensor(item_array.take(pos_i_ids, axis=0))
+		labels = FloatTensor(pos_i_ratings).to(device)
 
-			users = FloatTensor(user_array.take(u_ids, axis=0))
-			rating_max = FloatTensor(user_rating_max.take(u_ids, axis=0))
-			pos_items = FloatTensor(item_array.take(pos_i_ids, axis=0))
+		for ng_idx in range(0, args.num_ng):
+			neg_i_ids = train_j_list[ng_idx].take(idx, axis=0)
 			neg_items = FloatTensor(item_array.take(neg_i_ids, axis=0))
 
 			optimizer.zero_grad()
 
 			pos_preds = model(users, pos_items)
 			neg_preds = model(users, neg_items)
-
-			loss = a * pair_loss(pos_preds, neg_preds) + (1 - a) * point_loss(pos_preds, labels, rating_max)
-			#loss = pair_loss(pos_preds, neg_preds)
-			epoch_loss += loss.item()
+			
+			pair_loss = TOP1(pos_preds, neg_preds)
+			point_loss = explicit_log(pos_preds, labels, rating_max)
+			
+			if not torch.isfinite(point_loss):
+				print(r_batch_idx, point_loss.item())
+				print(pos_preds)
+				print(labels)
+				print(rating_max)
+				exit()
+			loss = a * pair_loss + (1 - a) * point_loss
+			epoch_loss += (loss.item() / args.num_ng)
 			loss.backward()
 			optimizer.step()
 
@@ -207,8 +214,7 @@ for epoch in range(args.epochs):
 	test_time = time.time() - time_E
 	print("The time elapse of epoch {:03d}".format(epoch) + " is for train: " + 
 			time.strftime("%M: %S", time.gmtime(train_time)) + " // for test: " + time.strftime("%M: %S", time.gmtime(test_time)))
-	print("Loss: {:.6f}\tHR: {:.4f}\tNDCG: {:.4f}".format((epoch_loss/(r_batch_idx+1))/args.num_ng, np.mean(HR), np.mean(NDCG)))
-
+	print("Loss: {:.6f}\tHR: {:.4f}\tNDCG: {:.4f}".format(epoch_loss/(r_batch_idx+1), np.mean(HR), np.mean(NDCG)))
 	if np.mean(HR) > best_hr:
 		best_hr, best_ndcg, best_epoch = np.mean(HR), np.mean(NDCG), epoch
 
