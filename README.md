@@ -7,7 +7,7 @@ https://dl.acm.org/doi/10.1145/3343117
 https://arxiv.org/pdf/1907.03459.pdf  
 
 It is not sure that this implementation has same performance with authors' experiments.  
-(Followed the journal's experimental setups as much as possible.)  
+(Followed the authors' experimental setups as much as possible.)  
 
 ## Implemented on following environments
 	* python==3.7.6
