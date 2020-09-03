@@ -1,3 +1,3 @@
-# JNCF implementation
+# JNCF pytorch implementation
 
-non-official implementation for J-NCF(ACM Transactions on Information Systems, 2019)
+non-official pytorch implementation for J-NCF(ACM Transactions on Information Systems, 2019)
