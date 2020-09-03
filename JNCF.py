@@ -1,14 +1,3 @@
-"""
-Implementation for "Joint Neural Collaborative Filtering for Recommender Systems"
-ACM Transactions on Information Systems, Vol. 37, No. 4, Article 39. (August 2019)
-
-https://dl.acm.org/doi/10.1145/3343117
-https://arxiv.org/pdf/1907.03459.pdf
-
-by Sangjin Cheon (cheon.research@gmail.com)
-University of Seoul, Korea
-"""
-
 import torch
 import torch.nn as nn
 import torch.nn.functional as F 

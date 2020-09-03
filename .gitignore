@@ -1,5 +1,2 @@
 __pycache__/
-data/
-logs/
-ml-20m/
-.idea/
+.idea
