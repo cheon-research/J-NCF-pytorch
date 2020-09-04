@@ -22,7 +22,7 @@ from functions import *
 learning_rate = 0.0001
 batch_size = 256
 epochs = 100
-num_ng = 1
+num_ng = 5
 
 if torch.cuda.is_available():
 	device = torch.device('cuda')
@@ -124,7 +124,7 @@ for epoch in range(epochs):
 			NDCG.append(ndcg(gt_item, recommends))
 
 	eval_time = time.time() - time_E
-	print('[Epoch :03d]'.format(epoch) + '\ttrain: ' + time.strftime('%M: %S', time.gmtime(train_time)) + '\ttest: ' + time.strftime('%M: %S', time.gmtime(eval_time)))
+	print('[Epoch {:03d}]'.format(epoch) + '\ttrain: ' + time.strftime('%M: %S', time.gmtime(train_time)) + '\ttest: ' + time.strftime('%M: %S', time.gmtime(eval_time)))
 	print('Loss: {:.6f}\tHR: {:.4f}\tNDCG: {:.4f}'.format(epoch_loss / (batch_idx + 1), np.mean(HR), np.mean(NDCG)))
 
 	if np.mean(HR) > best_hr:

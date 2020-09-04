@@ -26,7 +26,7 @@ def BPR(pos, neg):
 
 def explicit_log(y_hat, y, y_max):
     Y_ui = y / y_max
-    loss = - Y_ui * F.logsigmoid(y_hat) - (1 - Y_ui) * F.logsigmoid(1 - y_hat)
+    loss = - Y_ui * torch.log(y_hat) - (1 - Y_ui) * torch.log(1 - y_hat)
     return torch.mean(loss)
 
 
