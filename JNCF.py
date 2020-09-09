@@ -42,17 +42,17 @@ class JNCF(nn.Module):
         for layer in self.DF_user:
             if isinstance(layer, nn.Linear):
                 nn.init.normal_(layer.weight, 0, 0.01)
-                layer.bias.data.data.normal_(0.0, 0.01)
+                layer.bias.data.normal_(0.0, 0.01)
 
         for layer in self.DF_item:
             if isinstance(layer, nn.Linear):
                 nn.init.normal_(layer.weight, 0, 0.01)
-                layer.bias.data.data.normal_(0.0, 0.01)
+                layer.bias.data.normal_(0.0, 0.01)
 
         for layer in self.DI:
             if isinstance(layer, nn.Linear):
                 nn.init.normal_(layer.weight, 0, 0.01)
-                layer.bias.data.data.normal_(0.0, 0.01)
+                layer.bias.data.normal_(0.0, 0.01)
 
         nn.init.normal_(self.predict_layer.weight, 0, 0.01)
 

@@ -13,9 +13,9 @@ def negative_sampling(u_cnt, neg_candidates):
     return np.array(neg_items)
 
 
-def TOP1(pos, neg):
+def TOP1(pos, neg, num_ng):
     diff = neg - pos
-    loss = torch.sigmoid(diff) + torch.sigmoid(torch.pow(neg, 2))
+    loss = (torch.sigmoid(diff) + torch.sigmoid(torch.pow(neg, 2))) / num_ng
     return torch.mean(loss)
 
 
