@@ -21,7 +21,7 @@ from functions import *
 
 
 def run(num_ng):
-	learning_rate = 0.001
+	learning_rate = 0.0001
 	batch_size = 512
 	epochs = 100
 	num_ng = num_ng
@@ -37,7 +37,9 @@ def run(num_ng):
 
 	# Datasets
 	user_matrix, item_matrix, train_u, train_i, train_r, neg_candidates, u_cnt, user_rating_max = dataset.load_train_ml_1m()
+	#user_matrix, item_matrix, train_u, train_i, neg_candidates, u_cnt = dataset.load_train_ml_100k()
 	test_users, test_items = dataset.load_test_ml_1m()
+	#test_users, test_items = dataset.load_test_ml_100k()
 	n_users, n_items = user_matrix.shape[0], user_matrix.shape[1]
 
 	user_array = user_matrix.toarray()
@@ -48,7 +50,8 @@ def run(num_ng):
 	model = JNCF.JNCF(n_users, n_items, 'concat').to(device)  # 'multi' or 'concat'
 	point_loss = explicit_log
 	pair_loss = TOP1
-	a = 0.7  # a * pair_loss + (1 - a) * point_loss
+	# a = 0.7  # a * pair_loss + (1 - a) * point_loss
+	a = 1
 	optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 	best_hr = 0.0
@@ -82,23 +85,28 @@ def run(num_ng):
 
 			optimizer.zero_grad()
 
-			pos_preds = model(users, pos_items)
-			point_loss = explicit_log(pos_preds, labels, rating_max)
-
-			pair_loss = 0
+			point_loss, pair_loss = 0, 0
 			for ng_idx in range(0, num_ng):
 				neg_i_ids = train_j_list[ng_idx].take(idx, axis=0)
 				neg_items = FloatTensor(item_array.take(neg_i_ids, axis=0))
 
 				neg_preds = model(users, neg_items)
 
-				pair_loss_neg = TOP1(pos_preds, neg_preds, float(num_ng))
-				pair_loss += pair_loss_neg
+				neg_point_loss = explicit_log(neg_preds, labels, rating_max)
+				point_loss += neg_point_loss
 
-			loss = a * pair_loss + (1 - a) * point_loss
-			
-			epoch_loss += (loss.item() / num_ng)
-			epoch_pair_loss += pair_loss.item()
+				#neg_pair_loss = TOP1(pos_preds, neg_preds, float(num_ng))
+				#pair_loss += neg_pair_loss
+
+			pos_preds = model(users, pos_items)
+			pos_point_loss = explicit_log(pos_preds, labels, rating_max)
+			point_loss += pos_point_loss
+
+			#loss = a * pair_loss #+ (1 - a) * point_loss
+			loss = point_loss
+
+			epoch_loss += loss.item()
+			#epoch_pair_loss += pair_loss.item()
 			epoch_point_loss += point_loss.item()
 
 			loss.backward()
@@ -108,7 +116,7 @@ def run(num_ng):
 		# Evaluate
 		model.eval()
 		HR, NDCG = [], []
-		eval_batch_size = 100 * 151
+		eval_batch_size = 100 * 151 # ml-1m=151 / ml-100k=41
 
 		time_E = time.time()
 		for start_idx in range(0, len(test_users), eval_batch_size):
@@ -140,13 +148,13 @@ def run(num_ng):
 		if np.mean(HR) > best_hr:
 			best_hr, best_ndcg, best_epoch = np.mean(HR), np.mean(NDCG), epoch
 
-	print('End. Best epoch {:03d}: HR = {:.4f}, NDCG = {:.4f}'.format(best_epoch, best_hr, best_ndcg))
+	print('End. Best epoch {:02d}: HR = {:.4f}, NDCG = {:.4f}'.format(best_epoch, best_hr, best_ndcg))
 
 if __name__ == "__main__":
 	#run(1)
 	run(2)
-	run(3)
-	run(4)
+	#run(3)
+	#run(4)
 	#run(5)
 	#run(6)
 	#run(7)
