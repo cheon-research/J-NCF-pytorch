@@ -20,7 +20,7 @@ import dataset
 from functions import *
 
 
-def run(num_ng):
+def run(data, num_ng):
 	learning_rate = 0.0001
 	batch_size = 512
 	epochs = 100
@@ -36,10 +36,11 @@ def run(num_ng):
 		FloatTensor = torch.FloatTensor
 
 	# Datasets
-	user_matrix, item_matrix, train_u, train_i, train_r, neg_candidates, u_cnt, user_rating_max = dataset.load_train_ml_1m()
-	#user_matrix, item_matrix, train_u, train_i, neg_candidates, u_cnt = dataset.load_train_ml_100k()
-	test_users, test_items = dataset.load_test_ml_1m()
-	#test_users, test_items = dataset.load_test_ml_100k()
+	user_matrix, item_matrix, train_u, train_i, train_r, neg_candidates, u_cnt, user_rating_max = dataset.load_train_data(data)
+	if data == 'ml-1m':
+		test_users, test_items = dataset.load_test_ml_1m()
+	elif data == 'ml-100k':
+		test_users, test_items = dataset.load_test_ml_100k()
 	n_users, n_items = user_matrix.shape[0], user_matrix.shape[1]
 
 	user_array = user_matrix.toarray()
@@ -50,8 +51,7 @@ def run(num_ng):
 	model = JNCF.JNCF(n_users, n_items, 'concat').to(device)  # 'multi' or 'concat'
 	point_loss = explicit_log
 	pair_loss = TOP1
-	# a = 0.7  # a * pair_loss + (1 - a) * point_loss
-	a = 1
+	a = 0.7  # a * pair_loss + (1 - a) * point_loss
 	optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 	best_hr = 0.0
@@ -81,32 +81,30 @@ def run(num_ng):
 
 			users = FloatTensor(user_array.take(u_ids, axis=0))
 			pos_items = FloatTensor(item_array.take(pos_i_ids, axis=0))
-			labels = FloatTensor(pos_i_ratings).to(device)
+			labels = FloatTensor(pos_i_ratings)
+			neg_labels = torch.ones(len(pos_i_ratings), dtype=torch.float32).to(device)
+			point_loss, pair_loss = 0., 0.
 
 			optimizer.zero_grad()
 
-			point_loss, pair_loss = 0, 0
+			preds = model(users, pos_items)
+			point_loss = explicit_log(preds, labels, rating_max)
+			
 			for ng_idx in range(0, num_ng):
 				neg_i_ids = train_j_list[ng_idx].take(idx, axis=0)
 				neg_items = FloatTensor(item_array.take(neg_i_ids, axis=0))
 
 				neg_preds = model(users, neg_items)
 
-				neg_point_loss = explicit_log(neg_preds, labels, rating_max)
+				neg_pair_loss = TOP1(preds, neg_preds, float(num_ng))
+				neg_point_loss = explicit_log(neg_preds, neg_labels, rating_max)
+				pair_loss += neg_pair_loss
 				point_loss += neg_point_loss
 
-				#neg_pair_loss = TOP1(pos_preds, neg_preds, float(num_ng))
-				#pair_loss += neg_pair_loss
-
-			pos_preds = model(users, pos_items)
-			pos_point_loss = explicit_log(pos_preds, labels, rating_max)
-			point_loss += pos_point_loss
-
-			#loss = a * pair_loss #+ (1 - a) * point_loss
-			loss = point_loss
+			loss = a * pair_loss + (1 - a) * point_loss
 
 			epoch_loss += loss.item()
-			#epoch_pair_loss += pair_loss.item()
+			epoch_pair_loss += pair_loss.item()
 			epoch_point_loss += point_loss.item()
 
 			loss.backward()
@@ -116,7 +114,7 @@ def run(num_ng):
 		# Evaluate
 		model.eval()
 		HR, NDCG = [], []
-		eval_batch_size = 100 * 151 # ml-1m=151 / ml-100k=41
+		eval_batch_size = 100 * 41 # ml-1m=151 / ml-100k=41
 
 		time_E = time.time()
 		for start_idx in range(0, len(test_users), eval_batch_size):
@@ -132,6 +130,7 @@ def run(num_ng):
 			e_batch_size = eval_batch_size // 100  # faster eval
 			preds = torch.chunk(preds, e_batch_size)
 			chunked_items = torch.chunk(torch.IntTensor(i_ids), e_batch_size)
+
 			for i, pred in enumerate(preds):
 				_, indices = torch.topk(pred, 10)
 				recommends = torch.take(chunked_items[i], indices).numpy().tolist()
@@ -149,15 +148,3 @@ def run(num_ng):
 			best_hr, best_ndcg, best_epoch = np.mean(HR), np.mean(NDCG), epoch
 
 	print('End. Best epoch {:02d}: HR = {:.4f}, NDCG = {:.4f}'.format(best_epoch, best_hr, best_ndcg))
-
-if __name__ == "__main__":
-	#run(1)
-	run(2)
-	#run(3)
-	#run(4)
-	#run(5)
-	#run(6)
-	#run(7)
-	#run(8)
-	#run(9)
-	#run(10)

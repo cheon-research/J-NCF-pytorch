@@ -15,7 +15,7 @@ def negative_sampling(u_cnt, neg_candidates):
 
 def TOP1(pos, neg, num_ng):
     diff = neg - pos
-    loss = (torch.sigmoid(diff) + torch.sigmoid(torch.pow(neg, 2))) / num_ng
+    loss = torch.sigmoid(diff) + torch.sigmoid(torch.pow(neg, 2))
     return torch.mean(loss)
 
 
@@ -27,7 +27,7 @@ def BPR(pos, neg):
 def explicit_log(y_hat, y, y_max):
     Y_ui = y / y_max
     loss = - Y_ui * torch.log(y_hat) - (1 - Y_ui) * torch.log(1 - y_hat)
-    return torch.mean(loss)
+    return torch.sum(loss)
 
 
 def hit(gt_item, pred_items):
