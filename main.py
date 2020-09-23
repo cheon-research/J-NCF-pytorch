@@ -82,33 +82,32 @@ def run(data, num_ng):
 			users = FloatTensor(user_array.take(u_ids, axis=0))
 			pos_items = FloatTensor(item_array.take(pos_i_ids, axis=0))
 			labels = FloatTensor(pos_i_ratings)
-			neg_labels = torch.ones(len(pos_i_ratings), dtype=torch.float32).to(device)
+			#neg_labels = torch.ones(len(pos_i_ratings), dtype=torch.float32).to(device)
 			point_loss, pair_loss = 0., 0.
 
 			optimizer.zero_grad()
 
-			preds = model(users, pos_items)
-			point_loss = explicit_log(preds, labels, rating_max)
-			
 			for ng_idx in range(0, num_ng):
+				preds = model(users, pos_items)
+				point_loss = explicit_log(preds, labels, rating_max)
+
 				neg_i_ids = train_j_list[ng_idx].take(idx, axis=0)
 				neg_items = FloatTensor(item_array.take(neg_i_ids, axis=0))
 
 				neg_preds = model(users, neg_items)
 
-				neg_pair_loss = TOP1(preds, neg_preds, float(num_ng))
-				neg_point_loss = explicit_log(neg_preds, neg_labels, rating_max)
-				pair_loss += neg_pair_loss
-				point_loss += neg_point_loss
+				pair_loss = TOP1(preds, neg_preds, float(num_ng))
+				#neg_point_loss = explicit_log(neg_preds, neg_labels, rating_max)
+				#pair_loss += neg_pair_loss
+				#point_loss += neg_point_loss
+				loss = a * pair_loss + (1 - a) * point_loss
 
-			loss = a * pair_loss + (1 - a) * point_loss
+				epoch_loss += loss.item()
+				epoch_pair_loss += pair_loss.item()
+				epoch_point_loss += point_loss.item()
 
-			epoch_loss += loss.item()
-			epoch_pair_loss += pair_loss.item()
-			epoch_point_loss += point_loss.item()
-
-			loss.backward()
-			optimizer.step()
+				loss.backward()
+				optimizer.step()
 		train_time = time.time() - start_time
 
 		# Evaluate

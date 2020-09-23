@@ -27,7 +27,7 @@ def BPR(pos, neg):
 def explicit_log(y_hat, y, y_max):
     Y_ui = y / y_max
     loss = - Y_ui * torch.log(y_hat) - (1 - Y_ui) * torch.log(1 - y_hat)
-    return torch.sum(loss)
+    return torch.mean(loss)
 
 
 def hit(gt_item, pred_items):
