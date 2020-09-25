@@ -15,14 +15,14 @@ import numpy as np
 
 import time
 
-import JNCF
+from model import JNCF
 import dataset
 from functions import *
 
 
 def run(data, num_ng):
 	learning_rate = 0.0001
-	batch_size = 512
+	batch_size = 256
 	epochs = 100
 	num_ng = num_ng
 
@@ -50,10 +50,10 @@ def run(data, num_ng):
 	user_idxlist, item_idxlist = list(range(n_users)), list(range(n_items))
 
 	# Model
-	model = JNCF.JNCF(n_users, n_items, 'concat').to(device)  # 'multi' or 'concat'
-	point_loss = explicit_log
-	pair_loss = TOP1
+	model = JNCF(n_users, n_items, 'concat').to(device)  # 'multi' or 'concat'
 	a = 0.7  # a * pair_loss + (1 - a) * point_loss
+	pair_loss_function = TOP1  # TOP1 or BPR
+	point_loss_function = torch.nn.BCELoss()
 	optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 	best_hr = 0.0
@@ -77,31 +77,29 @@ def run(data, num_ng):
 			idx = idxlist[start_idx:end_idx]
 
 			u_ids = train_u.take(idx)
-			pos_i_ids = train_i.take(idx)
-			pos_i_ratings = train_r.take(idx)
-			rating_max = FloatTensor(user_rating_max.take(u_ids, axis=0))
-
+			i_ids = train_i.take(idx)
+			i_ratings = train_r.take(idx)
+			
 			users = FloatTensor(user_array.take(u_ids, axis=0))
-			pos_items = FloatTensor(item_array.take(pos_i_ids, axis=0))
-			labels = FloatTensor(pos_i_ratings)
-			#neg_labels = torch.ones(len(pos_i_ratings), dtype=torch.float32).to(device)
-			point_loss, pair_loss = 0., 0.
+			items = FloatTensor(item_array.take(i_ids, axis=0))
+			labels = FloatTensor(i_ratings)
+
+			rating_max = FloatTensor(user_rating_max.take(u_ids, axis=0))
+			Y_ui = labels / rating_max  # for Normalized BCE
 
 			optimizer.zero_grad()
+			point_loss, pair_loss = 0., 0.
 
 			for ng_idx in range(0, num_ng):
-				preds = model(users, pos_items)
-				point_loss = explicit_log(preds, labels, rating_max)
+				preds = model(users, items)
+				point_loss = point_loss_function(preds, Y_ui)
 
 				neg_i_ids = train_j_list[ng_idx].take(idx, axis=0)
 				neg_items = FloatTensor(item_array.take(neg_i_ids, axis=0))
 
 				neg_preds = model(users, neg_items)
+				pair_loss = pair_loss_function(preds, neg_preds)
 
-				pair_loss = TOP1(preds, neg_preds, float(num_ng))
-				#neg_point_loss = explicit_log(neg_preds, neg_labels, rating_max)
-				#pair_loss += neg_pair_loss
-				#point_loss += neg_point_loss
 				loss = a * pair_loss + (1 - a) * point_loss
 
 				epoch_loss += loss.item()
