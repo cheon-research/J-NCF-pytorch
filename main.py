@@ -38,8 +38,10 @@ def run(data, num_ng):
 	# Datasets
 	user_matrix, item_matrix, train_u, train_i, train_r, neg_candidates, u_cnt, user_rating_max = dataset.load_train_data(data)
 	if data == 'ml-1m':
+		eval_batch_size = 100 * 151
 		test_users, test_items = dataset.load_test_ml_1m()
 	elif data == 'ml-100k':
+		eval_batch_size = 100 * 41
 		test_users, test_items = dataset.load_test_ml_100k()
 	n_users, n_items = user_matrix.shape[0], user_matrix.shape[1]
 
@@ -113,7 +115,6 @@ def run(data, num_ng):
 		# Evaluate
 		model.eval()
 		HR, NDCG = [], []
-		eval_batch_size = 100 * 41 # ml-1m=151 / ml-100k=41
 
 		time_E = time.time()
 		for start_idx in range(0, len(test_users), eval_batch_size):
