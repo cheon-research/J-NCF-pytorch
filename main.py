@@ -20,7 +20,11 @@ import dataset
 from functions import *
 
 
-def run(data, num_ng):
+def run(data, num_ng, gpu='0'):
+	import os
+	os.environ['CUDA_VISIBLE_DEVICES'] = gpu
+	print("##### {} Negative Samples experiment on {} dataset".format(num_ng, data))
+	
 	learning_rate = 0.0001
 	batch_size = 256
 	epochs = 100
@@ -43,6 +47,9 @@ def run(data, num_ng):
 	elif data == 'ml-100k':
 		eval_batch_size = 100 * 41
 		test_users, test_items = dataset.load_test_ml_100k()
+	elif dataset == 'yelp':
+		eval_batch_size = 100 * 81  # yelp 25677 = 81 * 317
+		test_users, test_items = dataset.load_test_yelp()
 	n_users, n_items = user_matrix.shape[0], user_matrix.shape[1]
 
 	user_array = user_matrix.toarray()
@@ -146,3 +153,10 @@ def run(data, num_ng):
 			best_hr, best_ndcg, best_epoch = np.mean(HR), np.mean(NDCG), epoch
 
 	print('End. Best epoch {:02d}: HR = {:.4f}, NDCG = {:.4f}'.format(best_epoch, best_hr, best_ndcg))
+
+
+if __name__ == "__main__":
+	#for n in [1, 2, 3, 4, 5, 6, 7, 8, 9, 10]:
+	#	run('ml-1m', n)
+	for n in [5, 10, 15, 20, 25]:
+		run('ml-1m', n)

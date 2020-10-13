@@ -11,6 +11,9 @@ def load_train_data(dataset):
     elif dataset == 'ml-100k':
         data = pd.read_csv('dataset/ml-100k.train.rating.csv', sep=',', header=None, names=['user', 'item', 'rating'], usecols=[0, 1, 2],
                         dtype={0: np.int16, 1: np.int16, 2:np.int8})
+    elif dataset == 'yelp':
+        data = pd.read_csv('dataset/yelp.train.rating.csv', sep=',', header=None, names=['user', 'item', 'rating'], usecols=[0, 1, 2],
+                        dtype={0: np.int32, 1: np.int32, 2:np.int8})
 
     n_user, n_item = data['user'].max() + 1, data['item'].max() + 1
     user_count = data.groupby('user').count()['item'].values.reshape(-1) # count interacted items for each user
@@ -59,6 +62,16 @@ def load_test_ml_100k():
     test_users, test_items = [], []
     data = pd.read_csv('dataset/ml-100k.test.negative.csv', sep=',', header=None, names=['user', 'item'], 
         usecols=[0, 1], dtype={0: np.int16, 1: np.int16})
+
+    n_user, n_item = data['user'].max() + 1, data['item'].max() + 1
+    users, items = data['user'].values, data['item'].values
+
+    return np.array(users), np.array(items)
+
+def load_test_yelp():
+    test_users, test_items = [], []
+    data = pd.read_csv('dataset/yelp.test.negative.csv', sep=',', header=None, names=['user', 'item'], 
+        usecols=[0, 1], dtype={0: np.int32, 1: np.int32})
 
     n_user, n_item = data['user'].max() + 1, data['item'].max() + 1
     users, items = data['user'].values, data['item'].values

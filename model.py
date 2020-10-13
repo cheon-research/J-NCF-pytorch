@@ -34,10 +34,10 @@ class JNCF(nn.Module):
         self.DI = nn.Sequential(
                     nn.Linear(feature_size, 128),
                     nn.ReLU(),
-                    nn.Linear(128, 8),
+                    nn.Linear(128, 64),
                     nn.ReLU())
 
-        self.predict_layer = nn.Linear(8, 1, bias=False)
+        self.predict_layer = nn.Linear(64, 1, bias=False)
 
         for layer in self.DF_user:
             if isinstance(layer, nn.Linear):
