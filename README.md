@@ -1,4 +1,4 @@
-# JNCF pytorch implementation
+# J-NCF pytorch implementation
 
 Non-official Implementation for "Joint Neural Collaborative Filtering for Recommender Systems"  
 ACM Transactions on Information Systems, Vol. 37, No. 4, Article 39. (August 2019)  
