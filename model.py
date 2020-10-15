@@ -67,5 +67,6 @@ class JNCF(nn.Module):
         elif self.combination == 'multi':
             feature_vector = user_feature * item_feature
 
-        pred = torch.sigmoid(self.predict_layer(self.DI(feature_vector)))
+        #pred = torch.sigmoid(self.predict_layer(self.DI(feature_vector)))
+        pred = self.predict_layer(self.DI(feature_vector))
         return pred.view(-1)

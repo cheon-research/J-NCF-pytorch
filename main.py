@@ -60,7 +60,7 @@ def run(data, num_ng, gpu='0'):
 	model = JNCF(n_users, n_items, 'concat').to(device)  # 'multi' or 'concat'
 	a = 0.7  # a * pair_loss + (1 - a) * point_loss
 	pair_loss_function = TOP1  # TOP1 or BPR
-	point_loss_function = torch.nn.BCELoss()
+	point_loss_function = torch.nn.BCEWithLogitsLoss()
 	optimizer = optim.Adam(model.parameters(), lr=learning_rate)
 
 	best_hr = 0.0
