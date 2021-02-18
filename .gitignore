@@ -1,5 +1,10 @@
 __pycache__/
 .idea
+output/
+dataset/
+
 multi_run.py
 multi_run_6.py
 multi_run_7.py
+exp_JNCF.py
+main.py
